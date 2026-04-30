@@ -1175,6 +1175,15 @@ export const optimoveSDK = (function () {
 		const open = (widgetUrl, userId, token) => {
 			if (_overlay) return;
 
+			let widgetOrigin;
+			try {
+				const parsed = new URL(widgetUrl);
+				if (parsed.protocol !== 'https:') return;
+				widgetOrigin = parsed.origin;
+			} catch (e) {
+				return;
+			}
+
 			const overlay = document.createElement('div');
 			overlay.id = 'optiGamifyOverlay';
 			overlay.style.cssText =
@@ -1191,6 +1200,7 @@ export const optimoveSDK = (function () {
 			_overlay = overlay;
 
 			function _handleMessage(event) {
+				if (event.origin !== widgetOrigin) return;
 				try {
 					const data = typeof event.data === 'string'
 						? JSON.parse(event.data)
@@ -1199,13 +1209,13 @@ export const optimoveSDK = (function () {
 					if (data && data.type === 'READY') {
 						iframe.contentWindow.postMessage(
 							JSON.stringify({ type: 'INIT', userId: userId || null, token: token || null }),
-							'*'
+							widgetOrigin
 						);
 					} else if (data && data.type === 'CLOSE') {
 						close();
 					}
 				} catch (e) {
-					// Ignore non-JSON messages from other origins
+					// Ignore non-JSON messages
 				}
 			}
 
