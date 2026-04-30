@@ -1169,6 +1169,62 @@ export const optimoveSDK = (function () {
 		};
 	}
 
+	const gamifyModule = (() => {
+		let _overlay = null;
+
+		const open = (widgetUrl, userId, token) => {
+			if (_overlay) return;
+
+			const overlay = document.createElement('div');
+			overlay.id = 'optiGamifyOverlay';
+			overlay.style.cssText =
+				'position:fixed;top:0;left:0;width:100%;height:100%;' +
+				'z-index:99999;background:#000;border:none;margin:0;padding:0;';
+
+			const iframe = document.createElement('iframe');
+			iframe.src = widgetUrl;
+			iframe.style.cssText = 'width:100%;height:100%;border:none;';
+			iframe.allow = 'fullscreen';
+
+			overlay.appendChild(iframe);
+			document.body.appendChild(overlay);
+			_overlay = overlay;
+
+			function _handleMessage(event) {
+				try {
+					const data = typeof event.data === 'string'
+						? JSON.parse(event.data)
+						: event.data;
+
+					if (data && data.type === 'READY') {
+						iframe.contentWindow.postMessage(
+							JSON.stringify({ type: 'INIT', userId: userId || null, token: token || null }),
+							'*'
+						);
+					} else if (data && data.type === 'CLOSE') {
+						close();
+					}
+				} catch (e) {
+					// Ignore non-JSON messages from other origins
+				}
+			}
+
+			window.addEventListener('message', _handleMessage);
+			_overlay._messageHandler = _handleMessage;
+		};
+
+		const close = () => {
+			if (!_overlay) return;
+			if (_overlay._messageHandler) {
+				window.removeEventListener('message', _overlay._messageHandler);
+			}
+			document.body.removeChild(_overlay);
+			_overlay = null;
+		};
+
+		return { open, close };
+	})();
+
 	const realtimeModule = (() => {
 		let _popup;
 		let _executionInProcess = false;
@@ -2273,6 +2329,8 @@ export const optimoveSDK = (function () {
         // ### end
 		showRealtimePopup: realtimeModule.executePopup,
 		closeRealtimePopup: realtimeModule.closePopup,
+		gamifyWidgetOpen: (widgetUrl, userId, token) => gamifyModule.open(widgetUrl, userId, token),
+		gamifyWidgetClose: () => gamifyModule.close(),
 		openWebTestTool: () => {
 			let webSDKToolElm = document.getElementById("optimoveSdkWebTool");
 

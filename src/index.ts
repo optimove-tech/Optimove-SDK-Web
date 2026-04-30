@@ -53,4 +53,14 @@ export default class Optimove {
 
     optimoveSDK.API.reportEvent(event, params);
   }
+
+  async gamifyWidgetOpen(widgetUrl: string, userId?: string, token?: string): Promise<void> {
+    await this.ensureInitialization();
+    optimoveSDK.API.gamifyWidgetOpen(widgetUrl, userId, token);
+  }
+
+  async gamifyWidgetClose(): Promise<void> {
+    await this.ensureInitialization();
+    optimoveSDK.API.gamifyWidgetClose();
+  }
 }
